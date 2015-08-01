@@ -1,0 +1,14 @@
+---
+title: 'Wharf to Wharf: 2015'
+author: "Aaron Ferrucci"
+date: "August 1, 2015"
+output: html_document
+---
+
+Here's a plot of the 2015 Wharf to Wharf results. The plot shows run time ("elapsed time") vs. age, with an average line by gender and standard deviation in gray. I've done a bit of cleanup on the data, for example: removing results where age is 0; removing an elapsed time outlier at 3 hours 30 minutes. I've put my result and my son's in black.
+
+```{r, echo=FALSE,message=FALSE,fig.width=10,fig.height=8}
+source("w2w.R")
+```
+
+Github link: https://github.com/aaronferrucci/wharf2wharf
