@@ -36,7 +36,7 @@ getData <- function(year) {
   filename <- "w2w2015.csv"
   force = FALSE
   if (!force & file.exists(filename)) {
-    allData <- read.csv(filename)
+    allData <- read.csv(filename, stringsAsFactors = FALSE)
   } else {
     # Just get total records
     url <- getQuery(0, 1)

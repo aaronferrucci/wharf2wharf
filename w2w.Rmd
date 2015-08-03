@@ -5,10 +5,198 @@ date: "August 1, 2015"
 output: html_document
 ---
 
-Here's a plot of the 2015 Wharf to Wharf results. The plot shows run time ("elapsed time") vs. age, with an average line by gender and standard deviation in gray. I've done a bit of cleanup on the data, for example: removing results where age is 0; removing an elapsed time outlier at 3 hours 30 minutes. I've put my result and my son's in black.
+### Introduction
+The Wharf to Wharf race happens every July in Santa Cruz. The mostly flat,
+6-mile course is along the coastline between Santa Cruz and Capitola. The 
+race has grown in popularity since its beginning in 1973. This year, 2015,
+there were more than 13,000 registered participants.
 
-```{r, echo=FALSE,message=FALSE,fig.width=10,fig.height=8}
-source("w2w.R")
+Race results are available here: http://www.wharftowharf.com/results. You
+can look up runners' results by bib number, name, city and state. This
+is ok, but it's not very handy for anyone wanting to do real data analysis.
+
+I've written some code to scrape the data from the results page, clean it
+up, and plot some interesting things. The code is available on github (see
+link below).
+
+### Data Processing
+#### Library loading, routine definitions
+Load a few required libraries, and source a utility file containing helper functions:
+``` {r init, message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+source("w2w_utils.R")
+```
+#### Loading the data
+On the results site, you can grab results with 10, 25, 50 or 100 entries per
+page. With a bit of snooping I found the url query string, which I can use in a
+loop to grab all of the data. I cache the data in a local file to avoid
+burdening the results page too much during debugging and exploration.
+
+``` {r read_data}
+allData <- getData(2015)
 ```
 
+#### Exploring the data
+With the data in hand, we can start exploring.
+
+##### Basic quantities
+
+Number of runners:
+``` {r}
+nrow(allData)
+```
+
+Age distribution:
+``` {r}
+qplot(allData$age)
+```
+
+So, it's not exactly a young person's race... the average age is `r mean(allData$age)`.
+
+Gender distribution:
+``` {r}
+qplot(allData$sex)
+```
+
+There are significantly more female paticipants than male (ratio F:M is `r sum(allData$sex == 'F') / sum(allData$sex == 'M')`:1).
+
+##### Geographical distribution:
+
+The data gives city, state and country.
+``` {r}
+table(allData$country)
+```
+
+Almost everyone is from the USA (not surprising). Besides 3 blank records, we have participants from the USA, Canada, Ethiopia, Japan, Kenya, and something called "UMI". What's "UMI"?
+
+``` {r}
+allData[allData$country == "UMI", c("firstname", "lastname", "bib", "city", "state", "country")]
+```
+
+Looks like a typo. Might as well fix that.
+``` {r}
+allData[allData$country == "UMI", c("country")] <- c("USA")
+```
+
+Three records had no country assignment:
+``` {r}
+allData[allData$country == "", ]
+```
+
+It looks like they just mixed up the country and city assignment.
+``` {r}
+allData[allData$country == "", c("country")] <- allData[allData$country == "", c("city")]
+allData[grepl("^KEN", allData$country), c("country")] <- c("KEN")
+allData[grepl("^ERI", allData$country), c("country")] <- c("ERI")
+```
+
+... and the final, cleaned-up country distribution is:
+``` {r}
+table(allData$country)
+```
+
+Of entrants from the USA, most are from California:
+``` {r}
+table(allData[allData$country == "USA", c("state")])
+```
+
+#### Outliers
+There are a few runners who are surprisingly young:
+``` {r}
+allData[allData$age < 5, c("age", "firstname", "lastname", "country", "sex", "elapsedTime")]
+```
+
+Since they represent such a small percentage of the total data, I suppose it's ok just to drop them.
+``` {r}
+allData <- dplyr::filter(allData, age >= 5)
+```
+
+The last-place runner finished after 3 hours, 30 minutes - more than an hour after the previous runner! Also, notice that Jaynee Caruso started the race at 6:00AM - something's very odd there. I'm just dropping that record.
+``` {r}
+allData[allData$elapsed > 2.49 * 3600 * 1000,]
+allData <- dplyr::filter(allData, elapsed < 2.75 * 3600 * 1000)
+```
+
+Last cleanup step: a bunch of runners started before the official start time (8:30AM). I don't see any obvious pattern
+for these runners; because their start times cause trouble with my corral start analysis (below), I'm dropping them all.
+``` {r}
+allData <- dplyr::filter(allData, start > 30090000)
+```
+
+#### Plotting!
+Here's a plot of runner age vs. race time. To see if there's a correlation between race time and gender, I've colored each runner according to gender. (It seems pretty clear that males have an advantage.) I've marked a couple of Ferruccis with black dots, so we can see where we fit in the overall picture. (If you want to mark your own data in black, just provide a file called "friends_priv.R" which implements a function, "getFriends()", which delivers the subset of data that you're interested in.)
+``` {r fig.width=11, fig.height=8}
+if (file.exists("friends_priv.R")) {
+  source("friends_priv.R")
+  friends <- getFriends(allData)
+} else {
+  friends <- subset(allData,
+    lastname == "FERRUCCI"
+  )
+}
+elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
+ggplot(allData, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = 0.375 * 3600 * 1000) +
+  stat_smooth(method = "gam", formula = y ~ s(x, bs="cs")) +
+  geom_point(data=friends,aes(x = age, y = elapsed, shape=lastname), color = "black")
+```
+
+It's a lot of data, with a huge range of run (elapsed) times. One feature of the wharf to wharf that's worth mentioning: lots of people join the race just to walk. To help separate runners from walkers, the participants are organized into "corrals", with an "elite" corral starting the race first, followed by corrals numbered 1 through 4. The idea is that if you expect to run faster, you'll be in a lower-numbered corral (or the "elite" corral), and so won't spend too much of your time dodging around slow-moving obstacles. So - at race day, the "elite" corral starts off, and everyone else moves forward, up to the start line. Then corral 1 starts, and corrals 2-4 move forward. This continues until corral 4 starts off. Each runner's bib has an RFID tag in it, so that the time at which the runner crosses the start and finish lines can be recorded. Official run time is the difference between the two times.
+
+Fortunately, the race data includes the start time for each runner. A plot of that data, start time vs. elapsed time, is interesting:
+``` {r fig.width=11, fig.height=8}
+start_ticks <- seq(8.5 * 3600 * 1000, max(allData$start), 0.0625 * 3600 * 1000)
+ggplot(allData, aes(x = elapsed, y = start, color = sex)) + 
+  scale_y_continuous(breaks = start_ticks, labels = timestr(start_ticks)) + 
+  scale_x_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks)) +
+  expand_limits(x = 0.25 * 3600 * 1000, y = 8.5 * 3600 * 1000) +
+  geom_point() +
+  geom_point(data=friends,aes(x = elapsed, y = start, shape=lastname), color = "black")
+```
+
+We can clearly see 4 distinct groups here. It looks like the "elite" corral started off around 8:31AM, with almost everyone crossing the start line at the same time. After a delay, a larger group of runners got the go-ahead at about 8:32; this group was so large that they couldn't all cross the start line at once. Eye-witness report! I was in that group, corral 1, and because we arrived a bit late, we were near the middle of the group, as shown by the black dots.
+
+After corral 1 was off, there was a somewhat longer delay, and then (conjecture) corral 2 was released at about 8:35. Continuing a trend, corral 2 is a larger group, with even more dispersion than the previous. 
+
+Finally, another pause, and the rest of the runners are started at about 8:39. This is by far the largest group, with the most dispersion. I think this data shows that corrals 3 and 4 were let go at once (that is, without a pause between corral 3 and 4). Can any eyewitnesses corroborate this story that the data seems to be telling?
+
+#### Runners only!
+It would be interesting to try to separate runners from walkers. Can we do this by separating by start time? I'll try separating out corrals elite, 1:
+
+``` {r fig.width=11, fig.height=8}
+runners <- allData[allData$start < (8 + 35.5/60) * 3600 * 1000,]
+runners_ticks <- seq(0, max(runners$elapsed), 900000)
+ggplot(runners, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = 0.25 * 3600 * 1000) +
+  stat_smooth(method = "gam", formula = y ~ s(x, bs="cs")) +
+  geom_point(data=friends,aes(x = age, y = elapsed, shape=lastname), color = "black")
+```
+
+There's still quite a wide range of run/walk times there. Looking back at the start time plot, I see that some of the "elite" corral runners finished after upwards of 2 hours. That's probably a bit of walking. This raises the question: how do you get into that elite corral?
+
+#### Top 100
+How about the top 100, male and female? These are the real runners in this race.
+``` {r fig.width=11, fig.height=8}
+top100 <- allData[allData$oversex <= 100,]
+top100_ticks <- seq(0, max(top100$elapsed), (5/60) * 3600 * 1000)
+ggplot(top100, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = top100_ticks, labels = timestr(top100_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = (27/60) * 3600 * 1000) +
+  stat_smooth(method = "gam", formula = y ~ s(x, bs="cs"))
+```
+
+There is a much stronger separation between male and female results in this group. The males tend to be on the younger side, with the oldest entrant under 60. The females continue on into their 70s - that's pretty impressive.
+
+
+#### References
 Github link: https://github.com/aaronferrucci/wharf2wharf
