@@ -20,7 +20,7 @@ timestr <- function(elapsed) {
   hours <- as.integer(seconds / 3600)
   seconds <- seconds - hours * 3600
   minutes <- as.integer(seconds / 60)
-  seconds <- seconds - minutes * 60
+  seconds <- round(seconds - minutes * 60, digits=2)
 
   minute_prefix <- ifelse(minutes < 10, "0", "")
   minutes <- paste0(minute_prefix, minutes)
