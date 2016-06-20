@@ -74,6 +74,9 @@ getData <- function(year) {
   return(allData)
 }
 
+#
+# Clean the data, as is done in w2w.Rmd
+#
 clean <- function(year, allData) {
   # UMI? typo? I think they mean USA
   allData[allData$country == "UMI", c("country")] <- c("USA")
