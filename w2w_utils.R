@@ -74,3 +74,24 @@ getData <- function(year) {
   return(allData)
 }
 
+clean <- function(year, allData) {
+  # UMI? typo? I think they mean USA
+  allData[allData$country == "UMI", c("country")] <- c("USA")
+
+  # Three records mixed up country and city assignments (I guess).
+  allData[allData$country == "", c("country")] <- allData[allData$country == "", c("city")]
+  allData[grepl("^KEN", allData$country), c("country")] <- c("KEN")
+  allData[grepl("^ERI", allData$country), c("country")] <- c("ERI")
+
+  # Drop entrants 5 and younger (stroller participants?)
+  allData <- dplyr::filter(allData, age >= 5)
+ 
+  # Drop records with elapsed > 3 hours, 30 minutes
+  allData <- dplyr::filter(allData, elapsed < 2.75 * 3600 * 1000)
+
+  # Drop ridiculous recrds that started before the race start time (8:30AM)
+  allData <- dplyr::filter(allData, start > 30090000)
+
+  return(allData);
+}
+
