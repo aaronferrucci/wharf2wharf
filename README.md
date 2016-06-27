@@ -6,4 +6,4 @@ To prepare data for the WharfToWharfR package, follow this sequence:
 - data <- getData(year)
 - data <- clean(year, data)
 - data <- anonymize(data)
-- write.csv(data, <raw data dir>)
+- write.csv(data, -raw data dir-)
