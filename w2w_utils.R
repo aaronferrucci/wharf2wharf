@@ -98,3 +98,9 @@ clean <- function(year, allData) {
   return(allData);
 }
 
+# For WharfToWharfR, remove the user names.
+anonymize <- function(data) {
+  data <- subset(data, select = -c(firstname, lastname))
+  return(data)
+}
+
