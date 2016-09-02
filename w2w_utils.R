@@ -21,6 +21,10 @@ getQuery <- function(start, length, year) {
 }
 
 
+# The elapsed-time (in ms) for runners is buried inside
+# some sort of hierarchical data structure. This routine tries
+# to extract that elapsed time data, in a very ad-hoc manner. The
+# routine works for 2015 and 2016; for other years it's untested.
 extract_elapsed <- function(data0) {
   splits <- data0$splits
   num_names <- length(names(splits))
@@ -28,6 +32,7 @@ extract_elapsed <- function(data0) {
   last_split <- splits[[last_name]]
   elapsed <- last_split$elapsed
 
+  return(elapsed)
 }
 
 timestr <- function(elapsed) {
