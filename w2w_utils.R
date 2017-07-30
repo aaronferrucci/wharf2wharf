@@ -39,6 +39,25 @@ extract_elapsed <- function(data0) {
         return(elapsed)
 }
 
+# In the 2017 data, many entries are missing their startTime (data0$start$time_ms).
+# The problem is in the raw data. What to do? Fortunately, there's some redundancy in
+# the data: there are a number of "splits" (taken at 2 mile intervals, I think), and
+# each split has a current time (time_ms) and an elapsed time since the start (elapsed).
+# From those values, the start time can be calculated (time_ms - elapsed). This function
+# iterates over the splits, choosing the first non-zero calculated start time.
+calculate_start_via_2nd_split <- function(data0) {
+  # Start with zero values, and overwrite with non-zero below.  
+  start <- rep(0, nrow(data0))
+
+  splits <- data0$splits
+  num_names <- length(names(splits))
+  for (split in 1:num_names) {
+    name <- names(splits[split])
+    start <- ifelse(start > 0, start, splits[[name]]$time_ms - splits[[name]]$elapsed)
+  }
+  return(start)
+}
+
 timestr <- function(elapsed) {
         # elapsed is in ms, convert to s
         seconds <- elapsed / 1000.0
@@ -68,6 +87,7 @@ getData <- function(year) {
                 p0 <- getURL(url)
                 allData <- stripJQ(p0)
                 totalRecords <- allData$iTotalRecords
+                print(sprintf("totalRecords: %d", totalRecords))
                 data0 <- allData$aaData
 
                 allData <- data.frame()
@@ -87,8 +107,11 @@ getData <- function(year) {
                         # data$elapsed <- data0$splits$mysterious_seperator$elapsed
                         data$elapsed <- extract_elapsed(data0)
                         data$elapsedTime <- timestr(data$elapsed)
-                        data$start <- data0$start$time_ms
-                        data$startTime <- timestr(data0$start$time_ms)
+                        # In some cases, start time is not available, but can be calculated from split data.
+                        calculatedStart <- calculate_start_via_2nd_split(data0)
+                        # Prefer $start$time_ms, fall back on calculated start time.
+                        data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
+                        data$startTime <- timestr(data$start)
 
                         allData <- bind_rows(allData, data)
                         start <- start + length
