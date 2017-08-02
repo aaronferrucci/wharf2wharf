@@ -166,8 +166,25 @@ clean <- function(year, allData) {
                 allData[allData$country == "KE", c("country")] <- c("KEN")
                 allData[allData$country == "ET", c("country")] <- c("ETH")
 
-                # For a lot of runners, start/startTime is 0/0:00:00. Data entry error? To do: check against the "official" results, out
-                # on 7/26.
+                # Fill in missing age data from previous years
+                d2015 <- clean(2015, getData(2015))
+                age0 <- allData[allData$age == 0,]
+                age2015 <- merge(age0, d2015, by=c("firstname", "lastname", "sex"))
+                for (i in 1:nrow(age2015)) {
+                  if (age2015[i,]$age.y != 0) {
+                    allData[allData$firstname == age2015[i,]$firstname & allData$lastname == age2015[i,]$lastname,]$age = age2015[i,]$age.y + 2
+                  }
+                }
+
+                d2016 <- clean(2016, getData(2016))
+                age0 <- allData[allData$age == 0,]
+                age2016 <- merge(age0, d2016, by=c("firstname", "lastname", "sex"))
+                for (i in 1:nrow(age2016)) {
+                  if (age2016[i,]$age.y != 0) {
+                    allData[allData$firstname == age2016[i,]$firstname & allData$lastname == age2016[i,]$lastname,]$age = age2016[i,]$age.y + 1
+                  }
+                }
+
         }
 
         return(allData);
