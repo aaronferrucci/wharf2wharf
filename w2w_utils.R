@@ -172,28 +172,33 @@ clean <- function(year, allData) {
                 age0 <- allData[allData$age == 0,]
                 age2015 <- merge(age0, d2015, by=c("firstname", "lastname", "sex"))
                 for (i in 1:nrow(age2015)) {
-                        #if 2015 has age data, assign to age0 instead of allData to preserve namespace
-                  if (age2015[i,]$age.y != 0) {
-                    age0[allData$firstname == age2015[i,]$firstname & age0$lastname == age2015[i,]$lastname,]$age = age2015[i,]$age.y + 2
-                  }
+                        # Update age0 with non-zero 2015 data
+                        if (age2015[i,]$age.y != 0) {
+                               age0[age0$firstname == age2015[i,]$firstname & age0$lastname == age2015[i,]$lastname,]$age = age2015[i,]$age.y + 2
+                       }
                 }
-                #assign age0 data to the relevant rows in allData
-                allData[allData$age==0]<-age0
+                # Assign age0 data to the relevant rows in allData
+                allData[allData$age==0, "age"] <- age0$age
 
                 d2016 <- clean(2016, getData(2016))
                 age0 <- allData[allData$age == 0,]
                 age2016 <- merge(age0, d2016, by=c("firstname", "lastname", "sex"))
                 for (i in 1:nrow(age2016)) {
-                        #if 2016 has age data, assign to age0 instead of allData to preserve namespace
-                  if (age2016[i,]$age.y != 0) {
-                    age0[age0$firstname == age2016[i,]$firstname & age0$lastname == age2016[i,]$lastname,]$age = age2016[i,]$age.y + 1
-                  }
+                        # Update age0 with non-zero 2016 data
+                        if (age2016[i,]$age.y != 0) {
+                                age0[age0$firstname == age2016[i,]$firstname & age0$lastname == age2016[i,]$lastname,]$age = age2016[i,]$age.y + 1
+                        }
                 }
-                #assign age0 data to the relevant rows in allData
-                allData[allData$age==0]<-age0
+                # Assign age0 data to the relevant rows in allData
+                allData[allData$age==0, "age"] <- age0$age
         }
 
         return(allData);
+}
+
+# get and clean.
+getCleanData <- function(year) {
+        return(clean(year, getData(year)))
 }
 
 # For WharfToWharfR, remove the user names.
