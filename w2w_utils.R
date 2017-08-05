@@ -168,32 +168,26 @@ clean <- function(year, allData) {
                 allData[allData$country == "ET", c("country")] <- c("ETH")
 
                 # Fill in missing age data from previous years
-                d2015 <- clean(2015, getData(2015))
-                age0 <- allData[allData$age == 0,]
-                age2015 <- merge(age0, d2015, by=c("firstname", "lastname", "sex"))
-                for (i in 1:nrow(age2015)) {
-                        # Update age0 with non-zero 2015 data
-                        if (age2015[i,]$age.y != 0) {
-                               age0[age0$firstname == age2015[i,]$firstname & age0$lastname == age2015[i,]$lastname,]$age = age2015[i,]$age.y + 2
-                       }
-                }
-                # Assign age0 data to the relevant rows in allData
-                allData[allData$age==0, "age"] <- age0$age
-
-                d2016 <- clean(2016, getData(2016))
-                age0 <- allData[allData$age == 0,]
-                age2016 <- merge(age0, d2016, by=c("firstname", "lastname", "sex"))
-                for (i in 1:nrow(age2016)) {
-                        # Update age0 with non-zero 2016 data
-                        if (age2016[i,]$age.y != 0) {
-                                age0[age0$firstname == age2016[i,]$firstname & age0$lastname == age2016[i,]$lastname,]$age = age2016[i,]$age.y + 1
-                        }
-                }
-                # Assign age0 data to the relevant rows in allData
-                allData[allData$age==0, "age"] <- age0$age
+                allData <- imputeAgeFromOldData(allData, year, 2015)
+                allData <- imputeAgeFromOldData(allData, year, 2016)
         }
 
         return(allData);
+}
+
+imputeAgeFromOldData <- function(allData, year, oldYear) {
+        dataOld <- getCleanData(oldYear)
+        age0 <- allData[allData$age == 0,]
+        ageOld <- merge(age0, dataOld, by=c("firstname", "lastname", "sex"))
+        for (i in 1:nrow(ageOld)) {
+          # Update age0 with non-zero older data
+          if (ageOld[i,]$age.y != 0) {
+            age0[age0$firstname == ageOld[i,]$firstname & age0$lastname == ageOld[i,]$lastname,]$age = ageOld[i,]$age.y + year - oldYear
+          }
+        }
+        # Assign age0 data to the relevant rows in allData
+        allData[allData$age==0, "age"] <- age0$age
+        return(allData)
 }
 
 # get and clean.
