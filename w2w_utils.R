@@ -155,7 +155,9 @@ clean <- function(year, allData) {
                 # records with age=0.
 
                 # 1 participants has country == "", but state == TX. Country is "USA"
-                allData[allData$country == "" & allData$state == "TX",c("country")] <- c("USA")
+                allData[allData$country == "" & allData$state == "TX", c("country")] <- c("USA")
+                # Likewise for 1 participant with state == CA
+                allData[allData$country == "" & allData$state == "CA", c("country")] <- c("USA")
                 # 2 participants have blank country, state and city. I'll guess the most likely country and state.
                 bibs <- dplyr::filter(allData, state == "" & country == "")$bib
                 allData[allData$bib %in% bibs,]$state <- c("CA")
@@ -172,11 +174,49 @@ clean <- function(year, allData) {
                 # Fill in missing age data from previous years
                 allData <- imputeAgeFromOldData(allData, year, 2015)
                 allData <- imputeAgeFromOldData(allData, year, 2016)
+        } else if (year == 2018) {
+                # There are 32 of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
+                # I don't know who these people are - maybe wheelchair? Omit them.
+                allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
+          
+                # Fix country errors
+                # "USA" for backward compatibility
+                allData[allData$country == "US", c("country")] <- c("USA")
+                # "KEN" for backward compatibility
+                allData[allData$country == "KE", c("country")] <- c("KEN")
+                
+                # A handful of country typos (?), all determined to be USA by city and state name.
+                allData[allData$country == "UM", c("country")] <- c("USA")
+                allData[allData$country == "AX", c("country")] <- c("USA")
+                allData[allData$country == "MX", c("country")] <- c("USA")
+                allData[allData$country == "CM", c("country")] <- c("USA")
+                allData[allData$country == "" & allData$state == "CA", c("country")] <- c("USA")
+                
+                # Two records remain with country == "". One has a name which appears in previous w2w, with country="USA";
+                # For the last one - just make a guess - pretty good odds - it's USA.
+                allData[allData$country == "", c("country")] <- c("USA")
+                
+                # One record has sex == NA. Executive decision: assert a gender
+                allData[allData$bib == 827,]$sex = "M"
+          
+                allData$firstname <- toupper(allData$firstname)
+                allData$lastname <- toupper(allData$lastname)
+                
+                allData <- imputeAgeFromOldData(allData, year, 2015)
+                allData <- imputeAgeFromOldData(allData, year, 2016)
+                allData <- imputeAgeFromOldData(allData, year, 2017)
         }
 
         return(allData);
 }
 
+# In cases where a record's "age" is 0, but a record with the same name has non-zero age in a previous year,
+# calculate their current age as 1 year greater than that of the previous year's data.
+#
+# Bugs:
+#   A name match doesn't mean it's actually the same person
+#   The person may not actually be 1 year older - if their birthday was after a previous year's run, but
+#     before this year's, say.
 imputeAgeFromOldData <- function(allData, year, oldYear) {
         dataOld <- getCleanData(oldYear)
         age0 <- allData[allData$age == 0,]
@@ -187,6 +227,7 @@ imputeAgeFromOldData <- function(allData, year, oldYear) {
             age0[age0$firstname == ageOld[i,]$firstname & age0$lastname == ageOld[i,]$lastname,]$age = ageOld[i,]$age.y + year - oldYear
           }
         }
+        print(paste0("imputeAgeFromOldData(", year, ", ", oldYear, "): found ", nrow(age0[age0$age > 0,]), " age records to impute"))
         # Assign age0 data to the relevant rows in allData
         allData[allData$age==0, "age"] <- age0$age
         return(allData)

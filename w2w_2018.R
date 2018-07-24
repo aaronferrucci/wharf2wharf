@@ -3,14 +3,7 @@ library(ggplot2)
 library(gridExtra)
 source("w2w_utils.R")
 
-allData <- getData(2018)
-
-# There are 32 of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
-# I don't know who these people are - maybe wheelchair? Omit them.
-allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
-
-# One record has sex == NA. Executive decision: assume a gender
-allData[allData$bib == 827,]$sex = "M"
+allData <- getCleanData(2018)
 
 # Display some people's data differently.
 friends <- subset(allData, lastname == "Ferrucci" & firstname == "Aaron")
