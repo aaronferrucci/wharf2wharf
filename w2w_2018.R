@@ -9,6 +9,9 @@ allData <- getData(2018)
 # I don't know who these people are - maybe wheelchair? Omit them.
 allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
 
+# One record has sex == NA. Executive decision: assume a gender
+allData[allData$bib == 827,]$sex = M
+
 # Display some people's data differently.
 friends <- subset(allData, lastname == "Ferrucci" & firstname == "Aaron")
 friends$lastname = factor(friends$lastname)
