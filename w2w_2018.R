@@ -10,7 +10,7 @@ allData <- getData(2018)
 allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
 
 # One record has sex == NA. Executive decision: assume a gender
-allData[allData$bib == 827,]$sex = M
+allData[allData$bib == 827,]$sex = "M"
 
 # Display some people's data differently.
 friends <- subset(allData, lastname == "Ferrucci" & firstname == "Aaron")
