@@ -22,7 +22,7 @@ getQuery <- function(start, length, year) {
                 fmt <- "http://results.xacte.com/json/agegroup?eventId=1477&subeventId=3886&categoryId=6283&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery183043211056341577336_1500931768127&sEcho=1&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1500931825246"
         }
         if (year == 2018) {
-                fmt <- "http://results.xacte.com/json/agegroup?eventId=2078&subeventId=5105&categoryId=7926&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery18306811967626096584_1532358561318&sEcho=1&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1532358561924";
+                fmt <- "http://results.xacte.com/json/agegroup?eventId=2078&subeventId=5105&categoryId=7926&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery183016611066151815979_1532530544207&sEcho=1&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1532530544744";
         }
         return(sprintf(fmt, start, length))
 }
@@ -175,7 +175,7 @@ clean <- function(year, allData) {
                 allData <- imputeAgeFromOldData(allData, year, 2015)
                 allData <- imputeAgeFromOldData(allData, year, 2016)
         } else if (year == 2018) {
-                # There are 32 of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
+                # There are tens of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
                 # I don't know who these people are - maybe wheelchair? Omit them.
                 allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
           
@@ -198,10 +198,12 @@ clean <- function(year, allData) {
                 
                 # One record has sex == NA. Executive decision: assert a gender
                 allData[allData$bib == 827,]$sex = "M"
-          
+             
+                # Uppercase is the standard now
                 allData$firstname <- toupper(allData$firstname)
                 allData$lastname <- toupper(allData$lastname)
                 
+                # patch a few age-0 records using data from previous years
                 allData <- imputeAgeFromOldData(allData, year, 2015)
                 allData <- imputeAgeFromOldData(allData, year, 2016)
                 allData <- imputeAgeFromOldData(allData, year, 2017)

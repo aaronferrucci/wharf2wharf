@@ -3,10 +3,14 @@ library(ggplot2)
 library(gridExtra)
 source("w2w_utils.R")
 
-allData <- getCleanData(2018)
+allData <- getData(2018)
+earlyStarts <- allData[allData$start < 8 * 3600 * 1000,]
+noAge <- allData[allData$age == 0,]
+
+allData <- clean(2018, allData)
 
 # Display some people's data differently.
-friends <- subset(allData, lastname == "Ferrucci" & firstname == "Aaron")
+friends <- subset(allData, lastname == "FERRUCCI" & firstname == "AARON")
 friends$lastname = factor(friends$lastname)
 
 elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
@@ -28,3 +32,12 @@ start_plot <- ggplot(allData, aes(x = elapsed, y = start, color = sex)) +
   geom_point(data=friends,aes(x = elapsed, y = start, shape=lastname), color = "black")
 
 grid.arrange(elapsed_plot, start_plot, nrow=2)
+
+early_ticks <- seq(0, max(earlyStarts$elapsed), 900000)
+early_plot <-
+  ggplot(earlyStarts, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = early_ticks, labels = timestr(early_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = 0.25 * 3600 * 1000) +
+  stat_smooth(formula = y~x)
