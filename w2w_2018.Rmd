@@ -1,0 +1,97 @@
+---
+title: 'Wharf to Wharf: 2018'
+author: "Aaron Ferrucci"
+date: "July 27, 2018"
+output: html_document
+---
+
+### Introduction
+The Wharf to Wharf race happens every July in Santa Cruz. The mostly flat,
+6-mile course hugs the coastline between Santa Cruz and Capitola. The 
+race has grown in popularity since its beginning in 1973, with more than 13,000
+registered participants in 2018.
+
+Race results are available online. You
+can look up runners' results by bib number, name, city and state. This
+is ok, but it's not very handy for anyone wanting to do real data analysis.
+
+I've written some code to scrape the data from the results page, clean it
+up, and plot some interesting things. The code is available on github; if you
+see a problem, fork my repo, fix it, and do a pull request!
+
+``` {r init, echo=F,message=FALSE}
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+source("w2w_utils.R")
+```
+``` {r read_data, echo=F}
+allData <- getData(2018)
+cleanData <- clean(2018, allData)
+cleanDataWithAge <- cleanData[cleanData$age > 5,]
+```
+
+### Summary of results
+* There were `r nrow(allData)` participants in the 2015 event
+* The average age of a participant is about `r round(mean(cleanDataWithAge$age), digits=0)`.
+* There are more female participants than male, with a F:M ratio of about `r round(nrow(allData[allData$sex == "F",]) / nrow(allData[allData$sex == "M",]), 1)`:1.
+* Overwhelmingly, participants are from the USA. And almost all (`r round(100 * nrow(allData[allData$state == "CA",]) / nrow(allData), 1 )`%) are from California.
+* There are some anomalies in the data - `r nrow(allData[allData$age == 0,])` participants with age 0, `r nrow(allData[allData$start < 8 * 3600 * 1000,])` participants who started before the official start time of 8:30AM (but maybe this is real data), etc. It's not the messiest data set I've seen.
+* Males tend to be faster than females. This is especially pronounced in the top 100 ranks.
+
+### Basic Info
+Histogram of runner ages:
+
+``` {r echo=F, message=F}
+qplot(cleanDataWithAge$age, ylab = "", xlab = "age")
+```
+
+Histogram of genders:
+
+``` {r echo=F, message=F}
+qplot(cleanData$sex, ylab = "", xlab = "sex")
+```
+
+Country of origin. In 2018, we have the USA, Australia and Kenya:
+
+``` {r echo=F, message=F}
+table(cleanData$country)
+```
+
+#### Charts
+``` {r echo=F, message=F}
+elapsed_ticks <- seq(0, max(cleanDataWithAge$elapsed), 900000)
+ggplot(cleanDataWithAge, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = 0.375 * 3600 * 1000) +
+  stat_smooth(method = "gam", formula = y ~ s(x, bs="cs"))
+```
+
+``` {r echo=F, message=F}
+start_ticks <- seq(8.5 * 3600 * 1000, max(cleanData$start), 0.0625 * 3600 * 1000)
+ggplot(cleanData, aes(x = elapsed, y = start, color = sex)) + 
+  scale_y_continuous(breaks = start_ticks, labels = timestr(start_ticks)) + 
+  scale_x_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks)) +
+  expand_limits(x = 0.25 * 3600 * 1000, y = 8.5 * 3600 * 1000) +
+  geom_point()
+```
+
+``` {r echo=F, message=F}
+top100 <- cleanData[cleanData$oversex <= 100 & cleanData$oversex > 0,]
+top100_ticks <- seq(0, max(top100$elapsed), (5/60) * 3600 * 1000)
+ggplot(top100, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) + 
+  scale_y_continuous(breaks = top100_ticks, labels = timestr(top100_ticks), name = "elapsed time (hh:mm:ss)") + 
+  geom_point() +
+  expand_limits(y = (27/60) * 3600 * 1000) +
+  stat_smooth(method = "gam", formula = y ~ s(x, bs="cs"))
+```
+
+
+#### References
+Github link: https://github.com/aaronferrucci/wharf2wharf  
+Wharf to Wharf main page: http://www.wharftowharf.com/  
+Wharf to Wharf results page: http://www.wharftowharf.com/results  
+Definition of jogging: https://en.wikipedia.org/wiki/Jogging
