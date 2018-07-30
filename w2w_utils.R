@@ -1,6 +1,9 @@
 library(jsonlite)
 library(RCurl)
 library(dplyr) #for debugging
+
+path_to_data <- "."
+
 stripJQ <- function(str) {
         str <- sub("^jQuery.*?\\(", "", str, perl=TRUE);
         str <- sub("\\);$", "", str, perl=TRUE);
@@ -80,7 +83,7 @@ timestr <- function(elapsed) {
 
 # Get race data from the web site or from a local cache file.
 getData <- function(year) {
-        filename <- paste0("w2w", year, ".csv")
+        filename <- paste0(path_to_data, "/", "w2w", year, ".csv")
         force = FALSE
         if (!force & file.exists(filename)) {
                 allData <- read.csv(filename, stringsAsFactors = FALSE)
