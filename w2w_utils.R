@@ -12,7 +12,14 @@ stripJQ <- function(str) {
         return(allData)
 }
 
+# 2022 queries look like this:
+# https://results.raceroster.com/v2/en-US/results/77rcx5a3p6amwxyh/results?subEvent=138514&page=1&pageSize=500
+# there seems to be no way to do a "size 1" query (which I used to do to get the total number of records, before the
+# main data-capture loop). No problem, I can grab the first 500 and total number at the same time, then proceed to the loop.
 getQuery <- function(start, length, year) {
+        if (year != 2022) {
+          stop(paste0("No support for year: ", year))
+        }
         if (year == 2015) {
                 fmt <- "http://results.xacte.com/json/agegroup?eventId=1009&subeventId=2365&categoryId=2174&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery18308243213289018978_1438222582599&sEcho=12&iColumns=11&iDisplayStart=%d&iDisplayLength=%d&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&bRegex=false&bRegex_0=false&bSearchable_0=false&bRegex_1=false&bSearchable_1=true&bRegex_2=false&bSearchable_2=true&bRegex_3=false&bSearchable_3=true&bRegex_4=false&bSearchable_4=true&bRegex_5=false&bSearchable_5=true&bRegex_6=false&bSearchable_6=true&bRegex_7=false&bSearchable_7=true&bRegex_8=false&bSearchable_8=true&bRegex_9=false&bSearchable_9=true&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1438224723854"
         }
