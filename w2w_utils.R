@@ -16,40 +16,23 @@ stripJQ <- function(str) {
 # https://results.raceroster.com/v2/en-US/results/77rcx5a3p6amwxyh/results?subEvent=138514&page=1&pageSize=500
 # there seems to be no way to do a "size 1" query (which I used to do to get the total number of records, before the
 # main data-capture loop). No problem, I can grab the first 500 and total number at the same time, then proceed to the loop.
-getQuery <- function(start, length, year) {
-        if (year != 2022) {
-          stop(paste0("No support for year: ", year))
-        }
-        if (year == 2015) {
-                fmt <- "http://results.xacte.com/json/agegroup?eventId=1009&subeventId=2365&categoryId=2174&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery18308243213289018978_1438222582599&sEcho=12&iColumns=11&iDisplayStart=%d&iDisplayLength=%d&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&bRegex=false&bRegex_0=false&bSearchable_0=false&bRegex_1=false&bSearchable_1=true&bRegex_2=false&bSearchable_2=true&bRegex_3=false&bSearchable_3=true&bRegex_4=false&bSearchable_4=true&bRegex_5=false&bSearchable_5=true&bRegex_6=false&bSearchable_6=true&bRegex_7=false&bSearchable_7=true&bRegex_8=false&bSearchable_8=true&bRegex_9=false&bSearchable_9=true&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1438224723854"
-        }
-
-        if (year == 2016) {
-                fmt <- "http://results.xacte.com/json/agegroup?eventId=1294&subeventId=3043&categoryId=3169&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery1830027340891935842104_1472607831773&sEcho=8&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1472607958000"
-        }
-
-        if (year == 2017) {
-                fmt <- "http://results.xacte.com/json/agegroup?eventId=1477&subeventId=3886&categoryId=6283&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery183043211056341577336_1500931768127&sEcho=1&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1500931825246"
-        }
-        if (year == 2018) {
-                fmt <- "http://results.xacte.com/json/agegroup?eventId=2078&subeventId=5105&categoryId=7926&sex=-1&agegroupId=-1&tagcode=undefined&callback=jQuery183016611066151815979_1532530544207&sEcho=1&iColumns=11&sColumns=&iDisplayStart=%d&iDisplayLength=%d&mDataProp_0=&mDataProp_1=bib&mDataProp_2=firstname&mDataProp_3=city&mDataProp_4=sex&mDataProp_5=&mDataProp_6=&mDataProp_7=&mDataProp_8=overall&mDataProp_9=oversex&mDataProp_10=overdiv&sSearch=&bRegex=false&sSearch_0=&bRegex_0=false&bSearchable_0=false&sSearch_1=&bRegex_1=false&bSearchable_1=true&sSearch_2=&bRegex_2=false&bSearchable_2=true&sSearch_3=&bRegex_3=false&bSearchable_3=true&sSearch_4=&bRegex_4=false&bSearchable_4=true&sSearch_5=&bRegex_5=false&bSearchable_5=true&sSearch_6=&bRegex_6=false&bSearchable_6=true&sSearch_7=&bRegex_7=false&bSearchable_7=true&sSearch_8=&bRegex_8=false&bSearchable_8=true&sSearch_9=&bRegex_9=false&bSearchable_9=true&sSearch_10=&bRegex_10=false&bSearchable_10=true&iSortingCols=0&bSortable_0=false&bSortable_1=false&bSortable_2=false&bSortable_3=false&bSortable_4=false&bSortable_5=false&bSortable_6=false&bSortable_7=false&bSortable_8=false&bSortable_9=false&bSortable_10=false&_=1532530544744";
-        }
-        return(sprintf(fmt, start, length))
+getQuery <- function(start, limit, year) {
+  if (year != 2022) {
+    stop(paste0("No support for year: ", year))
+  }
+  fmt <- "https://results.raceroster.com/v2/api/result-events/33098/sub-events/141035/results?start=%d&limit=%d&locale=en-US&associationUuid=9eec16e6-fa5b-11e8-9bc5-0e03b32fca98"
+  return(sprintf(fmt, start, limit))
 }
 
 
-# The elapsed-time (in ms) for runners is buried inside
-# some sort of hierarchical data structure. This routine tries
-# to extract that elapsed time data, in a very ad-hoc manner. The
-# routine works for 2015 and 2016; for other years it's untested.
+# compute elapsed chipTime in ms
 extract_elapsed <- function(data0) {
-        splits <- data0$splits
-        num_names <- length(names(splits))
-        last_name <- names(splits)[num_names]
-        last_split <- splits[[last_name]]
-        elapsed <- last_split$elapsed
+  nums <- lapply(strsplit(data0$chipTime, ':', fixed=T), as.integer)
 
-        return(elapsed)
+  to_ms <- function(x) 1000 * sum(c(60, 1) * unlist(x))
+  elapsed <- sapply(nums, to_ms)
+
+  return(elapsed)
 }
 
 # In the 2017 data, many entries are missing their startTime (data0$start$time_ms).
@@ -90,39 +73,46 @@ timestr <- function(elapsed) {
 
 # Get race data from the web site or from a local cache file.
 getData <- function(year) {
+  if (year != 2022) {
+    stop(paste0("No support for year: ", year))
+  }
+
         filename <- paste0(path_to_data, "/", "w2w", year, ".csv")
         force = FALSE
         if (!force & file.exists(filename)) {
                 allData <- read.csv(filename, stringsAsFactors = FALSE)
         } else {
-                # Just get total records
-                url <- getQuery(0, 1, year)
+                # get first page of data
+                url <- getQuery(0, 50, year)
                 p0 <- getURL(url)
                 allData <- stripJQ(p0)
-                totalRecords <- allData$iTotalRecords
+                totalRecords <- allData$meta$totalResults
                 print(sprintf("totalRecords: %d", totalRecords))
-                data0 <- allData$aaData
 
                 allData <- data.frame()
 
-                tags <- c("firstname", "lastname", "bib", "city", "state", "country", "age", "sex", "overall", "oversex", "overdiv")
+                tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime")
                 start <- 0
-                size <- 200
+                size <- 100
                 while (start < totalRecords) {
                         length <- min(size, totalRecords - start)
                         print(sprintf("start, length: %d, %d", start, length))
                         url <- getQuery(start, length, year)
                         p0 <- getURL(url)
                         thisData <- stripJQ(p0)
-                        data0 <- thisData$aaData
+                        data0 <- thisData$data
                         data <- data0[,tags]
 
-                        # data$elapsed <- data0$splits$mysterious_seperator$elapsed
                         data$elapsed <- extract_elapsed(data0)
                         data$elapsedTime <- timestr(data$elapsed)
                         # In some cases, start time is not available, but can be calculated from split data.
                         calculatedStart <- calculate_start_via_2nd_split(data0)
                         # Prefer $start$time_ms, fall back on calculated start time.
+                        # Possibly I can compute start time as
+                        # 8:30 + (gunTime - chipTime)
+                        # depends on whether everyone's 'gunTime' started right
+                        # at 8:30, or if they had different "guns" per corral.
+                        # In fact I heard no guns at all.
                         data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
                         data$startTime <- timestr(data$start)
 
