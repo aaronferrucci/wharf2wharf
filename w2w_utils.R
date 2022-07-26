@@ -12,10 +12,6 @@ stripJQ <- function(str) {
         return(allData)
 }
 
-# 2022 queries look like this:
-# https://results.raceroster.com/v2/en-US/results/77rcx5a3p6amwxyh/results?subEvent=138514&page=1&pageSize=500
-# there seems to be no way to do a "size 1" query (which I used to do to get the total number of records, before the
-# main data-capture loop). No problem, I can grab the first 500 and total number at the same time, then proceed to the loop.
 getQuery <- function(start, limit, year) {
   if (year != 2022) {
     stop(paste0("No support for year: ", year))
@@ -25,9 +21,9 @@ getQuery <- function(start, limit, year) {
 }
 
 
-# compute elapsed chipTime in ms
-extract_elapsed <- function(data0) {
-  nums <- lapply(strsplit(data0$chipTime, ':', fixed=T), as.integer)
+# convert h:mm:ss time to ms
+extract_elapsed <- function(times) {
+  nums <- lapply(strsplit(times, ':', fixed=T), as.integer)
 
   to_ms <- function(x) 1000 * sum(c(60, 1) * unlist(x))
   elapsed <- sapply(nums, to_ms)
@@ -82,7 +78,9 @@ getData <- function(year) {
         if (!force & file.exists(filename)) {
                 allData <- read.csv(filename, stringsAsFactors = FALSE)
         } else {
-                # get first page of data
+                # get the total records
+                # to do: use the captured data in the loop below (rather than
+                # capturing it again)
                 url <- getQuery(0, 50, year)
                 p0 <- getURL(url)
                 allData <- stripJQ(p0)
@@ -103,17 +101,20 @@ getData <- function(year) {
                         data0 <- thisData$data
                         data <- data0[,tags]
 
-                        data$elapsed <- extract_elapsed(data0)
+                        data$elapsed <- extract_elapsed(data0$chipTime)
                         data$elapsedTime <- timestr(data$elapsed)
-                        # In some cases, start time is not available, but can be calculated from split data.
-                        calculatedStart <- calculate_start_via_2nd_split(data0)
-                        # Prefer $start$time_ms, fall back on calculated start time.
+
                         # Possibly I can compute start time as
                         # 8:30 + (gunTime - chipTime)
                         # depends on whether everyone's 'gunTime' started right
                         # at 8:30, or if they had different "guns" per corral.
                         # In fact I heard no guns at all.
-                        data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
+                        data$start <- extract_elapsed(data0$gunTime)
+                        # gunTime - chipTime
+                        data$start = data$start - data$elapsed
+                        # add 8:30, so start is time of day (in ms)
+                        data$start = data$start + ((8 * 60) + 30) * 60 * 1000
+                        # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
                         data$startTime <- timestr(data$start)
 
                         allData <- bind_rows(allData, data)
