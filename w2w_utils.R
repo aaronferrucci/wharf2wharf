@@ -20,13 +20,17 @@ getQuery <- function(start, limit, year) {
   return(sprintf(fmt, start, limit))
 }
 
-
 # convert h:mm:ss time to ms
 extract_elapsed <- function(times) {
+  # times are "mm:ss" or "h:mm:ss"
+  # create list of lists of 2 or 3 elements
   splits <- strsplit(times, ':', fixed=T)
+
+  # prepend a "0" to the list, if the format was "mm:ss"
   prepend_if_2 <- function(x) as.integer(if(length(x) == 2) append(x, "0", after=0) else x)
   nums <- lapply(splits, prepend_if_2)
 
+  # convert to milliseconds
   to_ms <- function(x) 1000 * sum(c(3600, 60, 1) * unlist(x))
   elapsed <- sapply(nums, to_ms)
 
@@ -112,11 +116,10 @@ getData <- function(year) {
       data$elapsed <- extract_elapsed(data0$chipTime)
       data$elapsedTime <- timestr(data$elapsed)
 
-      # Possibly I can compute start time as
+      # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
+      # has no "start" time (time the corral started).
+      # Experimentally, it looks like I can compute a start time as
       # 8:30 + (gunTime - chipTime)
-      # depends on whether everyone's 'gunTime' started right
-      # at 8:30, or if they had different "guns" per corral.
-      # In fact I heard no guns at all.
       data$start <- extract_elapsed(data0$gunTime)
       # gunTime - chipTime
       data$start = data$start - data$elapsed
