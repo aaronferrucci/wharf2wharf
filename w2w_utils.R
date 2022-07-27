@@ -23,9 +23,11 @@ getQuery <- function(start, limit, year) {
 
 # convert h:mm:ss time to ms
 extract_elapsed <- function(times) {
-  nums <- lapply(strsplit(times, ':', fixed=T), as.integer)
+  splits <- strsplit(times, ':', fixed=T)
+  prepend_if_2 <- function(x) as.integer(if(length(x) == 2) append(x, "0", after=0) else x)
+  nums <- lapply(splits, prepend_if_2)
 
-  to_ms <- function(x) 1000 * sum(c(60, 1) * unlist(x))
+  to_ms <- function(x) 1000 * sum(c(3600, 60, 1) * unlist(x))
   elapsed <- sapply(nums, to_ms)
 
   return(elapsed)
@@ -38,7 +40,7 @@ extract_elapsed <- function(times) {
 # From those values, the start time can be calculated (time_ms - elapsed). This function
 # iterates over the splits, choosing the first non-zero calculated start time.
 calculate_start_via_2nd_split <- function(data0) {
-  # Start with zero values, and overwrite with non-zero below.  
+  # Start with zero values, and overwrite with non-zero below.
   start <- rep(0, nrow(data0))
 
   splits <- data0$splits
@@ -73,58 +75,64 @@ getData <- function(year) {
     stop(paste0("No support for year: ", year))
   }
 
-        filename <- paste0(path_to_data, "/", "w2w", year, ".csv")
-        force = FALSE
-        if (!force & file.exists(filename)) {
-                allData <- read.csv(filename, stringsAsFactors = FALSE)
-        } else {
-                # get the total records
-                # to do: use the captured data in the loop below (rather than
-                # capturing it again)
-                url <- getQuery(0, 50, year)
-                p0 <- getURL(url)
-                allData <- stripJQ(p0)
-                totalRecords <- allData$meta$totalResults
-                print(sprintf("totalRecords: %d", totalRecords))
+  filename <- paste0(path_to_data, "/", "w2w", year, ".csv")
+  force = FALSE
+  if (!force & file.exists(filename)) {
+    allData <- read.csv(filename, stringsAsFactors = FALSE)
+  } else {
+    # get the total records
+    # to do: use the captured data in the loop below (rather than
+    # capturing it again)
+    url <- getQuery(0, 50, year)
+    p0 <- getURL(url)
+    allData <- stripJQ(p0)
+    totalRecords <- allData$meta$totalResults
 
-                allData <- data.frame()
+    # at position 11268, gunTime and chipTime become NA. Maybe the data's just
+    # not yet ready, or maybe someone failed at IT. Anyway, just grab the first
+    # 11000 records for now.
+    totalRecords <- 11000
+    print(sprintf("totalRecords: %d", totalRecords))
 
-                tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime")
-                start <- 0
-                size <- 100
-                while (start < totalRecords) {
-                        length <- min(size, totalRecords - start)
-                        print(sprintf("start, length: %d, %d", start, length))
-                        url <- getQuery(start, length, year)
-                        p0 <- getURL(url)
-                        thisData <- stripJQ(p0)
-                        data0 <- thisData$data
-                        data <- data0[,tags]
+    allData <- data.frame()
 
-                        data$elapsed <- extract_elapsed(data0$chipTime)
-                        data$elapsedTime <- timestr(data$elapsed)
+    tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
+    start <- 0
+    size <- 100
+    while (start < totalRecords) {
+      length <- size
+      print(sprintf("start, length: %d, %d", start, length))
+      url <- getQuery(start, length, year)
+      print(url)
+      p0 <- getURL(url)
+      thisData <- stripJQ(p0)
+      data0 <- thisData$data
+      data <- data0[,tags]
 
-                        # Possibly I can compute start time as
-                        # 8:30 + (gunTime - chipTime)
-                        # depends on whether everyone's 'gunTime' started right
-                        # at 8:30, or if they had different "guns" per corral.
-                        # In fact I heard no guns at all.
-                        data$start <- extract_elapsed(data0$gunTime)
-                        # gunTime - chipTime
-                        data$start = data$start - data$elapsed
-                        # add 8:30, so start is time of day (in ms)
-                        data$start = data$start + ((8 * 60) + 30) * 60 * 1000
-                        # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
-                        data$startTime <- timestr(data$start)
+      data$elapsed <- extract_elapsed(data0$chipTime)
+      data$elapsedTime <- timestr(data$elapsed)
 
-                        allData <- bind_rows(allData, data)
-                        start <- start + length
-                }
+      # Possibly I can compute start time as
+      # 8:30 + (gunTime - chipTime)
+      # depends on whether everyone's 'gunTime' started right
+      # at 8:30, or if they had different "guns" per corral.
+      # In fact I heard no guns at all.
+      data$start <- extract_elapsed(data0$gunTime)
+      # gunTime - chipTime
+      data$start = data$start - data$elapsed
+      # add 8:30, so start is time of day (in ms)
+      data$start = data$start + ((8 * 60) + 30) * 60 * 1000
+      # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
+      data$startTime <- timestr(data$start)
 
-                write.csv(allData, filename)
-        }
+      allData <- bind_rows(allData, data)
+      start <- start + length
+    }
 
-        return(allData)
+    write.csv(allData, filename)
+  }
+
+  return(allData)
 }
 
 #
@@ -179,31 +187,31 @@ clean <- function(year, allData) {
                 # There are tens of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
                 # I don't know who these people are - maybe wheelchair? Omit them.
                 allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
-          
+
                 # Fix country errors
                 # "USA" for backward compatibility
                 allData[allData$country == "US", c("country")] <- c("USA")
                 # "KEN" for backward compatibility
                 allData[allData$country == "KE", c("country")] <- c("KEN")
-                
+
                 # A handful of country typos (?), all determined to be USA by city and state name.
                 allData[allData$country == "UM", c("country")] <- c("USA")
                 allData[allData$country == "AX", c("country")] <- c("USA")
                 allData[allData$country == "MX", c("country")] <- c("USA")
                 allData[allData$country == "CM", c("country")] <- c("USA")
                 allData[allData$country == "" & allData$state == "CA", c("country")] <- c("USA")
-                
+
                 # Two records remain with country == "". One has a name which appears in previous w2w, with country="USA";
                 # For the last one - just make a guess - pretty good odds - it's USA.
                 allData[allData$country == "", c("country")] <- c("USA")
-                
+
                 # One record has sex == NA. Executive decision: assert a gender
                 allData[allData$bib == 827,]$sex = "M"
-             
+
                 # Uppercase is the standard now
                 allData$firstname <- toupper(allData$firstname)
                 allData$lastname <- toupper(allData$lastname)
-                
+
                 # patch a few age-0 records using data from previous years
                 allData <- imputeAgeFromOldData(allData, year, 2015)
                 allData <- imputeAgeFromOldData(allData, year, 2016)
