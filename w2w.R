@@ -19,7 +19,7 @@ if (file.exists("friends_priv.R")) {
   friends <- getFriends(allData)
 } else {
   friends <- subset(allData,
-    name == "Eli Gilbert"
+    name == "<your name here>"
   )
 }
 friends$name = factor(friends$name)
