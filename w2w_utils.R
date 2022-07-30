@@ -114,28 +114,22 @@ getData <- function(year) {
     write.csv(allData, filename)
   }
 
-  # TODO: process the raw data ('allData') into a form compatible with later
-  # processing and graphing
-  
-  # # TO DO: process allData, according to the below.
-  # tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
-  # data0 <- thisData$data
-  # data <- data0[,tags]
-  # 
-  # data$elapsed <- extract_elapsed(data0$chipTime)
-  # data$elapsedTime <- timestr(data$elapsed)
-  # 
-  # # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
-  # # has no "start" time (time the corral started).
-  # # Experimentally, it looks like I can compute a start time as
-  # # 8:30 + (gunTime - chipTime)
-  # data$start <- extract_elapsed(data0$gunTime)
-  # # gunTime - chipTime
-  # data$start = data$start - data$elapsed
-  # # add 8:30, so start is time of day (in ms)
-  # data$start = data$start + ((8 * 60) + 30) * 60 * 1000
-  # # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
-  # data$startTime <- timestr(data$start)
+  tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
+  allData <- allData[,tags]
+
+  allData$elapsed <- extract_elapsed(allData$chipTime)
+  allData$elapsedTime <- timestr(allData$elapsed)
+
+  # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
+  # has no "start" time (time the corral started).
+  # Experimentally, it looks like I can compute a start time as
+  # 8:30 + (gunTime - chipTime)
+  allData$start <- extract_elapsed(allData$gunTime)
+  # gunTime - chipTime
+  allData$start = allData$start - allData$elapsed
+  # add 8:30, so start is time of day (in ms)
+  allData$start = allData$start + ((8 * 60) + 30) * 60 * 1000
+  allData$startTime <- timestr(allData$start)
 
   return(allData)
 }
