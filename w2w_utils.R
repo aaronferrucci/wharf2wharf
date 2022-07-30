@@ -79,61 +79,63 @@ getData <- function(year) {
     stop(paste0("No support for year: ", year))
   }
 
-  filename <- paste0(path_to_data, "/", "w2w", year, ".csv")
+  filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
   force = FALSE
   if (!force & file.exists(filename)) {
     allData <- read.csv(filename, stringsAsFactors = FALSE)
   } else {
-    # get the total records
-    # to do: use the captured data in the loop below (rather than
-    # capturing it again)
-    url <- getQuery(0, 50, year)
-    p0 <- getURL(url)
-    allData <- stripJQ(p0)
-    totalRecords <- allData$meta$totalResults
-
-    # at position 11268, gunTime and chipTime become NA. Maybe the data's just
-    # not yet ready, or maybe someone failed at IT. Anyway, just grab the first
-    # 11000 records for now.
-    totalRecords <- 11000
-    print(sprintf("totalRecords: %d", totalRecords))
-
     allData <- data.frame()
-
-    tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
+    totalRecords <- 0 # will be reassigned on the first capture below
+    doneInit <- F
     start <- 0
     size <- 100
-    while (start < totalRecords) {
-      length <- size
-      print(sprintf("start, length: %d, %d", start, length))
-      url <- getQuery(start, length, year)
+
+    while (!doneInit | start < totalRecords) {
+      print(sprintf("start, size: %d, %d", start, size))
+      url <- getQuery(start, size, year)
       print(url)
       p0 <- getURL(url)
       thisData <- stripJQ(p0)
-      data0 <- thisData$data
-      data <- data0[,tags]
+      data <- thisData$data
 
-      data$elapsed <- extract_elapsed(data0$chipTime)
-      data$elapsedTime <- timestr(data$elapsed)
-
-      # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
-      # has no "start" time (time the corral started).
-      # Experimentally, it looks like I can compute a start time as
-      # 8:30 + (gunTime - chipTime)
-      data$start <- extract_elapsed(data0$gunTime)
-      # gunTime - chipTime
-      data$start = data$start - data$elapsed
-      # add 8:30, so start is time of day (in ms)
-      data$start = data$start + ((8 * 60) + 30) * 60 * 1000
-      # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
-      data$startTime <- timestr(data$start)
-
+      # if this is the first capture, grab totalRecords
+      if (!doneInit) {
+        totalRecords <- thisData$meta$totalResults
+        print(sprintf("totalRecords: %d", totalRecords))
+        doneInit <- T
+      }
+      
+      # Some oddball records have blank overallPlace value, which forces the
+      # field to class 'character'. Reverse that (blanks become integer N/A)
+      data$overallPlace <- as.integer(data$overallPlace)
       allData <- bind_rows(allData, data)
-      start <- start + length
+      start <- start + size
     }
-
     write.csv(allData, filename)
   }
+
+  # TODO: process the raw data ('allData') into a form compatible with later
+  # processing and graphing
+  
+  # # TO DO: process allData, according to the below.
+  # tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
+  # data0 <- thisData$data
+  # data <- data0[,tags]
+  # 
+  # data$elapsed <- extract_elapsed(data0$chipTime)
+  # data$elapsedTime <- timestr(data$elapsed)
+  # 
+  # # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
+  # # has no "start" time (time the corral started).
+  # # Experimentally, it looks like I can compute a start time as
+  # # 8:30 + (gunTime - chipTime)
+  # data$start <- extract_elapsed(data0$gunTime)
+  # # gunTime - chipTime
+  # data$start = data$start - data$elapsed
+  # # add 8:30, so start is time of day (in ms)
+  # data$start = data$start + ((8 * 60) + 30) * 60 * 1000
+  # # data$start <- ifelse(data0$start$time_ms > 0, data0$start$time_ms, calculatedStart)
+  # data$startTime <- timestr(data$start)
 
   return(allData)
 }
