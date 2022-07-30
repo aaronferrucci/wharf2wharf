@@ -131,6 +131,8 @@ getData <- function(year) {
   allData$start = allData$start + ((8 * 60) + 30) * 60 * 1000
   allData$startTime <- timestr(allData$start)
 
+  # Rename to match old data
+  names(allData)[names(allData) == 'genderSexId'] <- "sex"
   return(allData)
 }
 
