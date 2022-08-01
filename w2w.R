@@ -24,14 +24,14 @@ if (file.exists("friends_priv.R")) {
 }
 friends$name = factor(friends$name)
 
-elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
+elapsed_ticks <- seq(0, max(allData$elapsed) + extract_elapsed("0:14:59"), extract_elapsed("0:15:00"))
 elapsed_plot <-
   ggplot(allData, aes(x = age, y = elapsed, color=sex)) +
   scale_x_continuous(breaks = seq(0, 100, 10)) + 
   scale_y_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks), name = "elapsed time (hh:mm:ss)") + 
   geom_point() +
   expand_limits(y = 0.25 * 3600 * 1000) +
-  stat_smooth(formula = y~x) +
+  geom_smooth(method=loess, formula = y ~ x) +
   geom_point(data=friends,aes(x = age, y = elapsed, shape=name), color = "black")
 
 start_ticks <- seq(8.5 * 3600 * 1000, max(allData$start), 0.0625 * 3600 * 1000)
