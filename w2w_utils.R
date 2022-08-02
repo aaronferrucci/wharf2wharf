@@ -37,25 +37,6 @@ extract_elapsed <- function(times) {
   return(elapsed)
 }
 
-# In the 2017 data, many entries are missing their startTime (data0$start$time_ms).
-# The problem is in the raw data. What to do? Fortunately, there's some redundancy in
-# the data: there are a number of "splits" (taken at 2 mile intervals, I think), and
-# each split has a current time (time_ms) and an elapsed time since the start (elapsed).
-# From those values, the start time can be calculated (time_ms - elapsed). This function
-# iterates over the splits, choosing the first non-zero calculated start time.
-calculate_start_via_2nd_split <- function(data0) {
-  # Start with zero values, and overwrite with non-zero below.
-  start <- rep(0, nrow(data0))
-
-  splits <- data0$splits
-  num_names <- length(names(splits))
-  for (split in 1:num_names) {
-    name <- names(splits[split])
-    start <- ifelse(start > 0, start, splits[[name]]$time_ms - splits[[name]]$elapsed)
-  }
-  return(start)
-}
-
 timestr <- function(elapsed) {
         # elapsed is in ms, convert to s
         seconds <- elapsed / 1000.0
@@ -71,6 +52,17 @@ timestr <- function(elapsed) {
 
         time <- paste(hours, minutes, seconds, sep=":")
         return(time)
+}
+
+# 2022 genderPlace is of the form ' x / y'
+# covert to 'x', as an integer
+fixGenderPlace <- function(genderPlace) {
+  splits <- strsplit(genderPlace, ' ', fixed=T)
+
+  extract_place <- function(x) as.integer(x[1])
+  nums <- lapply(splits, extract_place)
+
+  return(nums)
 }
 
 # Get race data from the web site or from a local cache file.
@@ -104,7 +96,7 @@ getData <- function(year) {
         print(sprintf("totalRecords: %d", totalRecords))
         doneInit <- T
       }
-      
+
       # Some oddball records have blank overallPlace value, which forces the
       # field to class 'character'. Reverse that (blanks become integer N/A)
       data$overallPlace <- as.integer(data$overallPlace)
@@ -133,121 +125,10 @@ getData <- function(year) {
 
   # Rename to match old data
   names(allData)[names(allData) == 'genderSexId'] <- "sex"
+
+  # extract place from genderPlace, store in previous name
+  allData$oversex <- fixGenderPlace(allData$genderPlace)
   return(allData)
-}
-
-#
-# Clean the data, as is done in w2w.Rmd
-#
-clean <- function(year, allData) {
-        if (year == 2015) {
-                # UMI? typo? I think they mean USA
-                allData[allData$country == "UMI", c("country")] <- c("USA")
-
-                # Three records mixed up country and city assignments (I guess).
-                allData[allData$country == "", c("country")] <- allData[allData$country == "", c("city")]
-                allData[grepl("^KEN", allData$country), c("country")] <- c("KEN")
-                allData[grepl("^ERI", allData$country), c("country")] <- c("ERI")
-
-                # Drop entrants 4 and younger (stroller participants?)
-                allData <- dplyr::filter(allData, age >= 5)
-
-                # Drop records with elapsed > 3 hours, 30 minutes
-                allData <- dplyr::filter(allData, elapsed < 2.75 * 3600 * 1000)
-
-                # Drop ridiculous records that started before the race start time (8:30AM)
-                allData <- dplyr::filter(allData, start > 30090000)
-        } else if (year == 2017) {
-                # Annoyingly, in 2017, "USA" becomes "US". Make it backward-compatible
-                allData[allData$country == "US", c("country")] <- c("USA")
-
-                # I'd drop entrants with age 4 and lower, but this year there a large number of real-looking
-                # records with age=0.
-
-                # 1 participants has country == "", but state == TX. Country is "USA"
-                allData[allData$country == "" & allData$state == "TX", c("country")] <- c("USA")
-                # Likewise for 1 participant with state == CA
-                allData[allData$country == "" & allData$state == "CA", c("country")] <- c("USA")
-                # 2 participants have blank country, state and city. I'll guess the most likely country and state.
-                bibs <- dplyr::filter(allData, state == "" & country == "")$bib
-                allData[allData$bib %in% bibs,]$state <- c("CA")
-                allData[allData$bib %in% bibs,]$country <- c("USA")
-
-                # This year names are a mix of upper and lower case. Make it all uppercase, like previous years.
-                allData$firstname <- toupper(allData$firstname)
-                allData$lastname <- toupper(allData$lastname)
-
-                # For countries KE, ET, translate to canonical "KEN", "ETH".
-                allData[allData$country == "KE", c("country")] <- c("KEN")
-                allData[allData$country == "ET", c("country")] <- c("ETH")
-
-                # Fill in missing age data from previous years
-                allData <- imputeAgeFromOldData(allData, year, 2015)
-                allData <- imputeAgeFromOldData(allData, year, 2016)
-        } else if (year == 2018) {
-                # There are tens of records with start time exactly 7:30, with very long elapsed times - over 1.5 hours, many over 2 hours.
-                # I don't know who these people are - maybe wheelchair? Omit them.
-                allData <- dplyr::filter(allData, start > (8 * 3600 * 1000))
-
-                # Fix country errors
-                # "USA" for backward compatibility
-                allData[allData$country == "US", c("country")] <- c("USA")
-                # "KEN" for backward compatibility
-                allData[allData$country == "KE", c("country")] <- c("KEN")
-
-                # A handful of country typos (?), all determined to be USA by city and state name.
-                allData[allData$country == "UM", c("country")] <- c("USA")
-                allData[allData$country == "AX", c("country")] <- c("USA")
-                allData[allData$country == "MX", c("country")] <- c("USA")
-                allData[allData$country == "CM", c("country")] <- c("USA")
-                allData[allData$country == "" & allData$state == "CA", c("country")] <- c("USA")
-
-                # Two records remain with country == "". One has a name which appears in previous w2w, with country="USA";
-                # For the last one - just make a guess - pretty good odds - it's USA.
-                allData[allData$country == "", c("country")] <- c("USA")
-
-                # One record has sex == NA. Executive decision: assert a gender
-                allData[allData$bib == 827,]$sex = "M"
-
-                # Uppercase is the standard now
-                allData$firstname <- toupper(allData$firstname)
-                allData$lastname <- toupper(allData$lastname)
-
-                # patch a few age-0 records using data from previous years
-                allData <- imputeAgeFromOldData(allData, year, 2015)
-                allData <- imputeAgeFromOldData(allData, year, 2016)
-                allData <- imputeAgeFromOldData(allData, year, 2017)
-        }
-
-        return(allData);
-}
-
-# In cases where a record's "age" is 0, but a record with the same name has non-zero age in a previous year,
-# calculate their current age as 1 year greater than that of the previous year's data.
-#
-# Bugs:
-#   A name match doesn't mean it's actually the same person
-#   The person may not actually be 1 year older - if their birthday was after a previous year's run, but
-#     before this year's, say.
-imputeAgeFromOldData <- function(allData, year, oldYear) {
-        dataOld <- getCleanData(oldYear)
-        age0 <- allData[allData$age == 0,]
-        ageOld <- merge(age0, dataOld, by=c("firstname", "lastname", "sex"))
-        for (i in 1:nrow(ageOld)) {
-          # Update age0 with non-zero older data
-          if (ageOld[i,]$age.y != 0) {
-            age0[age0$firstname == ageOld[i,]$firstname & age0$lastname == ageOld[i,]$lastname,]$age = ageOld[i,]$age.y + year - oldYear
-          }
-        }
-        print(paste0("imputeAgeFromOldData(", year, ", ", oldYear, "): found ", nrow(age0[age0$age > 0,]), " age records to impute"))
-        # Assign age0 data to the relevant rows in allData
-        allData[allData$age==0, "age"] <- age0$age
-        return(allData)
-}
-
-# get and clean.
-getCleanData <- function(year) {
-        return(clean(year, getData(year)))
 }
 
 # For WharfToWharfR, remove the user names.

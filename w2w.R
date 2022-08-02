@@ -21,8 +21,8 @@ if (file.exists("friends_priv.R")) {
   friends <- subset(allData,
     name == "<your name here>"
   )
+  friends$name = factor(friends$name)
 }
-friends$name = factor(friends$name)
 
 elapsed_ticks <- seq(0, max(allData$elapsed) + extract_elapsed("0:14:59"), extract_elapsed("0:15:00"))
 elapsed_plot <-
