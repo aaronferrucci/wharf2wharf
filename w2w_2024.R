@@ -17,7 +17,7 @@ plot_2024 <- function(filename, title) {
     # result is strings, so convert to ingeter
     chiptime <- as.integer(unlist(strsplit(data$Chip.Elapsed.Time[i], ":")))
     # seconds multiplier for hours, minutes, seconds
-    mults <- ((length(chiptime)-1):0)
+    mults <- (length(chiptime)-1):0
     mults <- 60^mults
     # multiple hour, minute, second by seconds per unit
     secs <- chiptime * mults
