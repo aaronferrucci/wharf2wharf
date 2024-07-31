@@ -12,12 +12,12 @@ stripJQ <- function(str) {
         return(allData)
 }
 
-getQuery <- function(start, limit, year) {
-  if (year != 2022) {
+getQuery <- function(start_page, limit, year) {
+  if (year != 2024) {
     stop(paste0("No support for year: ", year))
   }
-  fmt <- "https://results.raceroster.com/v2/api/result-events/33098/sub-events/141035/results?start=%d&limit=%d&locale=en-US&associationUuid=9eec16e6-fa5b-11e8-9bc5-0e03b32fca98"
-  return(sprintf(fmt, start, limit))
+  fmt <- "https://results.raceroster.com/v2/en-US/results/rmxgwmpxq4ups94h/results?page=%d&pageSize=%d&sortCol=overallPlace&sortDir=asc"
+  return(sprintf(fmt, start_page, limit))
 }
 
 # convert h:mm:ss time to ms
@@ -67,7 +67,7 @@ fixGenderPlace <- function(genderPlace) {
 
 # Get race data from the web site or from a local cache file.
 getData <- function(year) {
-  if (year != 2022) {
+  if (year != 2024) {
     stop(paste0("No support for year: ", year))
   }
 
@@ -79,12 +79,12 @@ getData <- function(year) {
     allData <- data.frame()
     totalRecords <- 0 # will be reassigned on the first capture below
     doneInit <- F
-    start <- 0
+    start_page <- 1
     size <- 100
 
-    while (!doneInit | start < totalRecords) {
-      print(sprintf("start, size: %d, %d", start, size))
-      url <- getQuery(start, size, year)
+    while (!doneInit | start_page * size < totalRecords) {
+      print(sprintf("start_page, size: %d, %d", start_page, size))
+      url <- getQuery(start_page, size, year)
       print(url)
       p0 <- getURL(url)
       thisData <- stripJQ(p0)
