@@ -2,13 +2,13 @@ library(ggplot2)
 source("w2w_utils.R")
 
 plot_2024 <- function(filename, title) {
-  data <- read.csv(filename, sep="\t")
-  
+  data <- read.csv(filename, sep = "\t")
+
   # A bunch of records are incomplete: no elapsed time. They're at the end of the place
   # data, in order of bib number. I'll assume they were no-shows.
   # remove no-shows
-  data <- data[data$Chip.Elapsed.Time != "",]
-  
+  data <- data[data$Chip.Elapsed.Time != "", ]
+
   # add elapsed time in seconds
   elapsed <- numeric(0)
   for (i in 1:nrow(data)) {
@@ -17,7 +17,7 @@ plot_2024 <- function(filename, title) {
     # result is strings, so convert to ingeter
     chiptime <- as.integer(unlist(strsplit(data$Chip.Elapsed.Time[i], ":")))
     # seconds multiplier for hours, minutes, seconds
-    mults <- (length(chiptime)-1):0
+    mults <- (length(chiptime) - 1):0
     mults <- 60^mults
     # multiple hour, minute, second by seconds per unit
     secs <- chiptime * mults
@@ -29,16 +29,18 @@ plot_2024 <- function(filename, title) {
   data$elapsed <- elapsed
   breakdelta <- 9
   minbreak <- floor(min(data$elapsed) / 60) - 1
-  maxbreak <- ceiling((max(data$elapsed)) / (60*breakdelta)) * breakdelta
+  maxbreak <- ceiling((max(data$elapsed)) / (60 * breakdelta)) * breakdelta
   # breaks <- seq(33, 160, 9) * 60
   breaks <- seq(minbreak, maxbreak, breakdelta) * 60
-  labels <- timestr(breaks*1000)
-  
-  p <- ggplot(data, aes(x=elapsed)) + geom_histogram(binwidth=120) +
-    ggtitle(title) + xlab("elapsed time (HH:MM:SS)") +
-    geom_vline(aes(xintercept=data[grepl("Ferrucci", data$Full.Name),]$elapsed), color="red") +
-    scale_x_continuous(breaks=breaks, labels=labels) +
-    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  labels <- timestr(breaks * 1000)
+
+  p <- ggplot(data, aes(x = elapsed)) +
+    geom_histogram(binwidth = 120) +
+    ggtitle(title) +
+    xlab("elapsed time (HH:MM:SS)") +
+    geom_vline(aes(xintercept = data[grepl("Ferrucci", data$Full.Name), ]$elapsed), color = "red") +
+    scale_x_continuous(breaks = breaks, labels = labels) +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   return(p)
 }
 

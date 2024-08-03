@@ -1,15 +1,15 @@
 library(jsonlite)
 library(RCurl)
-library(dplyr) #for debugging
+library(dplyr) # for debugging
 
 path_to_data <- "."
 
 stripJQ <- function(str) {
-        str <- sub("^jQuery.*?\\(", "", str, perl=TRUE);
-        str <- sub("\\);$", "", str, perl=TRUE);
-        allData <- fromJSON(str)
+  str <- sub("^jQuery.*?\\(", "", str, perl = TRUE)
+  str <- sub("\\);$", "", str, perl = TRUE)
+  allData <- fromJSON(str)
 
-        return(allData)
+  return(allData)
 }
 
 getQuery <- function(start_page, limit, year) {
@@ -24,10 +24,10 @@ getQuery <- function(start_page, limit, year) {
 extract_elapsed <- function(times) {
   # times are "mm:ss" or "h:mm:ss"
   # create list of lists of 2 or 3 elements
-  splits <- strsplit(times, ':', fixed=T)
+  splits <- strsplit(times, ":", fixed = T)
 
   # prepend a "0" to the list, if the format was "mm:ss"
-  prepend_if_2 <- function(x) as.integer(if(length(x) == 2) append(x, "0", after=0) else x)
+  prepend_if_2 <- function(x) as.integer(if (length(x) == 2) append(x, "0", after = 0) else x)
   nums <- lapply(splits, prepend_if_2)
 
   # convert to milliseconds
@@ -38,26 +38,26 @@ extract_elapsed <- function(times) {
 }
 
 timestr <- function(elapsed) {
-        # elapsed is in ms, convert to s
-        seconds <- elapsed / 1000.0
-        hours <- as.integer(seconds / 3600)
-        seconds <- seconds - hours * 3600
-        minutes <- as.integer(seconds / 60)
-        seconds <- round(seconds - minutes * 60, digits=2)
+  # elapsed is in ms, convert to s
+  seconds <- elapsed / 1000.0
+  hours <- as.integer(seconds / 3600)
+  seconds <- seconds - hours * 3600
+  minutes <- as.integer(seconds / 60)
+  seconds <- round(seconds - minutes * 60, digits = 2)
 
-        minute_prefix <- ifelse(minutes < 10, "0", "")
-        minutes <- paste0(minute_prefix, minutes)
-        second_prefix <- ifelse(seconds < 10, "0", "")
-        seconds <- paste0(second_prefix, seconds)
+  minute_prefix <- ifelse(minutes < 10, "0", "")
+  minutes <- paste0(minute_prefix, minutes)
+  second_prefix <- ifelse(seconds < 10, "0", "")
+  seconds <- paste0(second_prefix, seconds)
 
-        time <- paste(hours, minutes, seconds, sep=":")
-        return(time)
+  time <- paste(hours, minutes, seconds, sep = ":")
+  return(time)
 }
 
 # 2022 genderPlace is of the form ' x / y'
 # covert to 'x', as an integer
 fixGenderPlace <- function(genderPlace) {
-  splits <- strsplit(genderPlace, ' ', fixed=T)
+  splits <- strsplit(genderPlace, " ", fixed = T)
 
   extract_place <- function(x) as.integer(x[1])
   nums <- lapply(splits, extract_place)
@@ -72,7 +72,7 @@ getData <- function(year) {
   }
 
   filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
-  force = FALSE
+  force <- FALSE
   if (!force & file.exists(filename)) {
     allData <- read.csv(filename, stringsAsFactors = FALSE)
   } else {
@@ -107,7 +107,7 @@ getData <- function(year) {
   }
 
   tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
-  allData <- allData[,tags]
+  allData <- allData[, tags]
 
   allData$elapsed <- extract_elapsed(allData$chipTime)
   allData$elapsedTime <- timestr(allData$elapsed)
@@ -118,13 +118,13 @@ getData <- function(year) {
   # 8:30 + (gunTime - chipTime)
   allData$start <- extract_elapsed(allData$gunTime)
   # gunTime - chipTime
-  allData$start = allData$start - allData$elapsed
+  allData$start <- allData$start - allData$elapsed
   # add 8:30, so start is time of day (in ms)
-  allData$start = allData$start + ((8 * 60) + 30) * 60 * 1000
+  allData$start <- allData$start + ((8 * 60) + 30) * 60 * 1000
   allData$startTime <- timestr(allData$start)
 
   # Rename to match old data
-  names(allData)[names(allData) == 'genderSexId'] <- "sex"
+  names(allData)[names(allData) == "genderSexId"] <- "sex"
 
   # extract place from genderPlace, store in previous name
   allData$oversex <- fixGenderPlace(allData$genderPlace)
@@ -133,6 +133,6 @@ getData <- function(year) {
 
 # For WharfToWharfR, remove the user names.
 anonymize <- function(data) {
-        data <- subset(data, select = -c(firstname, lastname))
-        return(data)
+  data <- subset(data, select = -c(firstname, lastname))
+  return(data)
 }
