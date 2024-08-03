@@ -12,22 +12,23 @@ stripJQ <- function(str) {
   return(allData)
 }
 
-getQuery <- function(start_page, limit, year) {
+getQuery <- function(startPage, limit, year) {
   if (year != 2024) {
     stop(paste0("No support for year: ", year))
   }
   fmt <- "https://results.raceroster.com/v2/en-US/results/rmxgwmpxq4ups94h/results?page=%d&pageSize=%d&sortCol=overallPlace&sortDir=asc"
-  return(sprintf(fmt, start_page, limit))
+  return(sprintf(fmt, startPage, limit))
 }
 
 # convert h:mm:ss time to ms
 extract_elapsed <- function(times) {
   # times are "mm:ss" or "h:mm:ss"
   # create list of lists of 2 or 3 elements
-  splits <- strsplit(times, ":", fixed = T)
+  splits <- strsplit(times, ":", fixed = TRUE)
 
   # prepend a "0" to the list, if the format was "mm:ss"
-  prepend_if_2 <- function(x) as.integer(if (length(x) == 2) append(x, "0", after = 0) else x)
+  prepend_if_2 <-
+    function(x) as.integer(if (length(x) == 2) append(x, "0", after = 0) else x)
   nums <- lapply(splits, prepend_if_2)
 
   # convert to milliseconds
@@ -57,7 +58,7 @@ timestr <- function(elapsed) {
 # 2022 genderPlace is of the form ' x / y'
 # covert to 'x', as an integer
 fixGenderPlace <- function(genderPlace) {
-  splits <- strsplit(genderPlace, " ", fixed = T)
+  splits <- strsplit(genderPlace, " ", fixed = TRUE)
 
   extract_place <- function(x) as.integer(x[1])
   nums <- lapply(splits, extract_place)
@@ -73,7 +74,7 @@ getData <- function(year) {
 
   filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
   force <- FALSE
-  if (!force & file.exists(filename)) {
+  if (!force && file.exists(filename)) {
     allData <- read.csv(filename, stringsAsFactors = FALSE)
   } else {
     allData <- data.frame()
@@ -82,7 +83,7 @@ getData <- function(year) {
     start_page <- 1
     size <- 100
 
-    while (!doneInit | start_page * size < totalRecords) {
+    while (!doneInit || start_page * size < totalRecords) {
       print(sprintf("start_page, size: %d, %d", start_page, size))
       url <- getQuery(start_page, size, year)
       print(url)
@@ -94,7 +95,7 @@ getData <- function(year) {
       if (!doneInit) {
         totalRecords <- thisData$meta$totalResults
         print(sprintf("totalRecords: %d", totalRecords))
-        doneInit <- T
+        doneInit <- TRUE
       }
 
       # Some oddball records have blank overallPlace value, which forces the

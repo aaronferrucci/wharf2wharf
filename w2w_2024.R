@@ -4,8 +4,8 @@ source("w2w_utils.R")
 plot_2024 <- function(filename, title) {
   data <- read.csv(filename, sep = "\t")
 
-  # A bunch of records are incomplete: no elapsed time. They're at the end of the place
-  # data, in order of bib number. I'll assume they were no-shows.
+  # A bunch of records are incomplete: no elapsed time. They're at the end
+  # of the place data, in order of bib number. I'll assume they were no-shows.
   # remove no-shows
   data <- data[data$Chip.Elapsed.Time != "", ]
 
@@ -30,7 +30,6 @@ plot_2024 <- function(filename, title) {
   breakdelta <- 9
   minbreak <- floor(min(data$elapsed) / 60) - 1
   maxbreak <- ceiling((max(data$elapsed)) / (60 * breakdelta)) * breakdelta
-  # breaks <- seq(33, 160, 9) * 60
   breaks <- seq(minbreak, maxbreak, breakdelta) * 60
   labels <- timestr(breaks * 1000)
 
@@ -38,7 +37,9 @@ plot_2024 <- function(filename, title) {
     geom_histogram(binwidth = 120) +
     ggtitle(title) +
     xlab("elapsed time (HH:MM:SS)") +
-    geom_vline(aes(xintercept = data[grepl("Ferrucci", data$Full.Name), ]$elapsed), color = "red") +
+    geom_vline(aes(
+      xintercept = data[grepl("Ferrucci", data$Full.Name), ]$elapsed
+    ), color = "red") +
     scale_x_continuous(breaks = breaks, labels = labels) +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
   return(p)
