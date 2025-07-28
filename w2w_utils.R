@@ -13,6 +13,8 @@ stripJQ <- function(str) {
 }
 
 getQuery <- function(startPage, limit, year) {
+  # I tried to get this query to work, hit some errors. Fell back on manual
+  # copy/paste from the results site.
   if (year != 2025) {
     stop(paste0("No support for year: ", year))
   }
@@ -107,7 +109,22 @@ getData <- function(year) {
     write.csv(allData, filename)
   }
 
-  tags <- c("name", "bib", "fromCity", "age", "genderSexId", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
+  # rename columns to match older names, so I don't have to change lots of
+  # downstream code
+  names(allData)[names(allData) == "Full.Name"] <- "name"
+  names(allData)[names(allData) == "Bib"] <- "bib"
+  names(allData)[names(allData) == "City"] <- "fromCity"
+  names(allData)[names(allData) == "Age"] <- "age"
+  names(allData)[names(allData) == "Gender"] <- "sex"
+  names(allData)[names(allData) == "Race.Place"] <- "overallPlace"
+  names(allData)[names(allData) == "Gender.Place"] <- "genderPlace"
+  names(allData)[names(allData) == "Age.Group"] <- "division"
+  names(allData)[names(allData) == "Age.Place"] <- "divisionPlace"
+  names(allData)[names(allData) == "Chip.Elapsed.Time"] <- "chipTime"
+  names(allData)[names(allData) == "Gun.Elapsed.Time"] <- "gunTime"
+  names(allData)[names(allData) == "Overall.Pace"] <- "overallPace"
+
+  tags <- c("name", "bib", "fromCity", "age", "sex", "overallPlace", "genderPlace", "divisionPlace", "chipTime", "gunTime", "overallPace")
   allData <- allData[, tags]
 
   allData$elapsed <- extract_elapsed(allData$chipTime)
@@ -116,19 +133,14 @@ getData <- function(year) {
   # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
   # has no "start" time (time the corral started).
   # Experimentally, it looks like I can compute a start time as
-  # 8:30 + (gunTime - chipTime)
+  # 8:00 + (gunTime - chipTime)
   allData$start <- extract_elapsed(allData$gunTime)
   # gunTime - chipTime
   allData$start <- allData$start - allData$elapsed
-  # add 8:30, so start is time of day (in ms)
+  # add 8:00, so start is time of day (in ms)
   allData$start <- allData$start + ((8 * 60) + 0) * 60 * 1000
   allData$startTime <- timestr(allData$start)
 
-  # Rename to match old data
-  names(allData)[names(allData) == "genderSexId"] <- "sex"
-
-  # extract place from genderPlace, store in previous name
-  allData$oversex <- fixGenderPlace(allData$genderPlace)
   return(allData)
 }
 
