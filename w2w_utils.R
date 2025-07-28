@@ -13,10 +13,10 @@ stripJQ <- function(str) {
 }
 
 getQuery <- function(startPage, limit, year) {
-  if (year != 2024) {
+  if (year != 2025) {
     stop(paste0("No support for year: ", year))
   }
-  fmt <- "https://results.raceroster.com/v2/en-US/results/rmxgwmpxq4ups94h/results?page=%d&pageSize=%d&sortCol=overallPlace&sortDir=asc"
+  fmt <- "https://results.raceroster.com/v2/en-US/results/nphrbxhycu4efhpn/results?page=%d&pageSize=%d"
   return(sprintf(fmt, startPage, limit))
 }
 
@@ -68,14 +68,14 @@ fixGenderPlace <- function(genderPlace) {
 
 # Get race data from the web site or from a local cache file.
 getData <- function(year) {
-  if (year != 2024) {
+  if (year != 2025) {
     stop(paste0("No support for year: ", year))
   }
 
   filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
   force <- FALSE
   if (!force && file.exists(filename)) {
-    allData <- read.csv(filename, stringsAsFactors = FALSE)
+    allData <- read.csv(filename, sep = '\t', stringsAsFactors = FALSE)
   } else {
     allData <- data.frame()
     totalRecords <- 0 # will be reassigned on the first capture below
@@ -88,7 +88,7 @@ getData <- function(year) {
       url <- getQuery(start_page, size, year)
       print(url)
       p0 <- getURL(url)
-      thisData <- stripJQ(p0)
+      # thisData <- stripJQ(p0)
       data <- thisData$data
 
       # if this is the first capture, grab totalRecords
@@ -121,7 +121,7 @@ getData <- function(year) {
   # gunTime - chipTime
   allData$start <- allData$start - allData$elapsed
   # add 8:30, so start is time of day (in ms)
-  allData$start <- allData$start + ((8 * 60) + 30) * 60 * 1000
+  allData$start <- allData$start + ((8 * 60) + 0) * 60 * 1000
   allData$startTime <- timestr(allData$start)
 
   # Rename to match old data
