@@ -1,26 +1,7 @@
-library(jsonlite)
 library(RCurl)
 library(dplyr) # for debugging
 
 path_to_data <- "."
-
-stripJQ <- function(str) {
-  str <- sub("^jQuery.*?\\(", "", str, perl = TRUE)
-  str <- sub("\\);$", "", str, perl = TRUE)
-  allData <- fromJSON(str)
-
-  return(allData)
-}
-
-getQuery <- function(startPage, limit, year) {
-  # I tried to get this query to work, hit some errors. Fell back on manual
-  # copy/paste from the results site.
-  if (year != 2025) {
-    stop(paste0("No support for year: ", year))
-  }
-  fmt <- "https://results.raceroster.com/v2/en-US/results/nphrbxhycu4efhpn/results?page=%d&pageSize=%d"
-  return(sprintf(fmt, startPage, limit))
-}
 
 # convert h:mm:ss time to ms
 extract_elapsed <- function(times) {
@@ -57,17 +38,6 @@ timestr <- function(elapsed) {
   return(time)
 }
 
-# 2022 genderPlace is of the form ' x / y'
-# covert to 'x', as an integer
-fixGenderPlace <- function(genderPlace) {
-  splits <- strsplit(genderPlace, " ", fixed = TRUE)
-
-  extract_place <- function(x) as.integer(x[1])
-  nums <- lapply(splits, extract_place)
-
-  return(nums)
-}
-
 # Get race data from the web site or from a local cache file.
 getData <- function(year) {
   if (year != 2025) {
@@ -75,39 +45,7 @@ getData <- function(year) {
   }
 
   filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
-  force <- FALSE
-  if (!force && file.exists(filename)) {
-    allData <- read.csv(filename, sep = '\t', stringsAsFactors = FALSE)
-  } else {
-    allData <- data.frame()
-    totalRecords <- 0 # will be reassigned on the first capture below
-    doneInit <- F
-    start_page <- 1
-    size <- 100
-
-    while (!doneInit || start_page * size < totalRecords) {
-      print(sprintf("start_page, size: %d, %d", start_page, size))
-      url <- getQuery(start_page, size, year)
-      print(url)
-      p0 <- getURL(url)
-      # thisData <- stripJQ(p0)
-      data <- thisData$data
-
-      # if this is the first capture, grab totalRecords
-      if (!doneInit) {
-        totalRecords <- thisData$meta$totalResults
-        print(sprintf("totalRecords: %d", totalRecords))
-        doneInit <- TRUE
-      }
-
-      # Some oddball records have blank overallPlace value, which forces the
-      # field to class 'character'. Reverse that (blanks become integer N/A)
-      data$overallPlace <- as.integer(data$overallPlace)
-      allData <- bind_rows(allData, data)
-      start <- start + size
-    }
-    write.csv(allData, filename)
-  }
+  allData <- read.csv(filename, sep = '\t', stringsAsFactors = FALSE)
 
   # rename columns to match older names, so I don't have to change lots of
   # downstream code
