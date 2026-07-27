@@ -20,6 +20,12 @@ clean <- function(year, allData) {
 allData <- getData(2026)
 allData <- clean(2026, allData)
 
+# w2w2026_raw.csv is already sorted by overallPlace, but sort explicitly
+# here too -- geom_point() draws in row order with opaque points, so a
+# future re-scrape that doesn't preserve that order (e.g. grouped by sex,
+# as w2w2025_raw.csv originally was) would silently bias the plot again.
+allData <- allData[order(allData$overallPlace), ]
+
 elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
 start_ticks <- seq(8 * 3600 * 1000, max(allData$start), 0.0625 * 3600 * 1000)
 
