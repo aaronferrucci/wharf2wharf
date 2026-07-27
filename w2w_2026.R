@@ -1,5 +1,6 @@
 library(dplyr)
 library(ggplot2)
+library(gridExtra)
 source("w2w_utils.R")
 
 clean <- function(year, allData) {
@@ -26,14 +27,25 @@ allData <- clean(2026, allData)
 # as w2w2025_raw.csv originally was) would silently bias the plot again.
 allData <- allData[order(allData$overallPlace), ]
 
-elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
-start_ticks <- seq(8 * 3600 * 1000, max(allData$start), 0.0625 * 3600 * 1000)
-
 # Female/Male keep the exact hues from the 2025 plot's default 2-color scale
 # (scales::hue_pal()(2)); Non-binary/Unknown are new this year, so they get
 # the other two slots from that same palette's 4-color step
-# (scales::hue_pal()(4)) rather than colors that could collide.
+# (scales::hue_pal()(4)) rather than colors that could collide. Shared by
+# elapsed_plot and start_plot so sex colors match between the two panels of
+# two_plots.png.
 sex_colors <- c(Female="#F8766D", Male="#00BFC4", `Non-binary`="#7CAE00", Unknown="#C77CFF")
+
+elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
+elapsed_plot <-
+  ggplot(allData, aes(x = age, y = elapsed, color=sex)) +
+  scale_x_continuous(breaks = seq(0, 100, 10)) +
+  scale_y_continuous(breaks = elapsed_ticks, labels = timestr(elapsed_ticks), name = "elapsed time (hh:mm:ss)") +
+  scale_color_manual(values = sex_colors) +
+  geom_point() +
+  expand_limits(y = 0.25 * 3600 * 1000) +
+  stat_smooth(formula = y~x)
+
+start_ticks <- seq(8 * 3600 * 1000, max(allData$start), 0.0625 * 3600 * 1000)
 
 start_plot <- ggplot(allData, aes(x = elapsed, y = start, color = sex)) +
   scale_y_continuous(breaks = start_ticks, labels = timestr(start_ticks)) +
@@ -42,6 +54,10 @@ start_plot <- ggplot(allData, aes(x = elapsed, y = start, color = sex)) +
   expand_limits(x = 0.25 * 3600 * 1000, y = 8.5 * 3600 * 1000) +
   geom_point() +
   ggtitle("Wharf to Wharf 2026")
+
+png(filename="two_plots.png", width=1024, height=794)
+grid.arrange(elapsed_plot, start_plot, nrow=2)
+dev.off()
 
 svg(filename="start_plot.svg", width=10, height=9)
 print(start_plot)
