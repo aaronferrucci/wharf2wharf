@@ -1,5 +1,5 @@
 library(RCurl)
-library(dplyr) # for debugging
+library(dplyr)
 
 path_to_data <- "."
 
@@ -38,14 +38,17 @@ timestr <- function(elapsed) {
   return(time)
 }
 
-# Get race data from the web site or from a local cache file.
+# # Get race data from the web site or from a local cache file.
 getData <- function(year) {
-  if (year != 2025) {
+  if (!(year %in% c(2025, 2026))) {
     stop(paste0("No support for year: ", year))
   }
 
   filename <- paste0(path_to_data, "/", "w2w", year, "_raw.csv")
-  allData <- read.csv(filename, sep = '\t', stringsAsFactors = FALSE)
+  # quote = "" : a couple of 2026 names contain literal double-quotes (e.g. a
+  # nickname in quotes), which otherwise confuses read.csv's CSV-quoting rules
+  # and silently merges rows together
+  allData <- read.csv(filename, sep = '\t', quote = "", stringsAsFactors = FALSE)
 
   # rename columns to match older names, so I don't have to change lots of
   # downstream code
@@ -68,8 +71,8 @@ getData <- function(year) {
   allData$elapsed <- extract_elapsed(allData$chipTime)
   allData$elapsedTime <- timestr(allData$elapsed)
 
-  # The 2022 race has "gunTime" and "chipTime" but (unlike previous years)
-  # has no "start" time (time the corral started).
+  # The 2022 race - and later - has "gunTime" and "chipTime" but (unlike
+  # previous years) has no "start" time (time the corral started).
   # Experimentally, it looks like I can compute a start time as
   # 8:00 + (gunTime - chipTime)
   allData$start <- extract_elapsed(allData$gunTime)
