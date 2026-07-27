@@ -1,6 +1,8 @@
 # wharf2wharf
 Analysis of the Santa Cruz Wharf to Wharf race. See here for the rendered document: http://rpubs.com/aaronferrucci/99569
 
+![2026 elapsed time vs. age, and start time vs. elapsed time](two_plots.png)
+
 To prepare data for the WharfToWharfR package, follow this sequence:
 - source("w2w_utils.R")
 - data <- getData(year)
