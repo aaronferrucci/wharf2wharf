@@ -23,6 +23,13 @@ allData <- getData(2025)
 allData <- clean(2025, allData)
 noAge <- allData[is.na(allData$age), ]
 
+# w2w2025_raw.csv is grouped by sex (all Male rows, then all Female rows,
+# ...), unlike w2w2026_raw.csv which is presorted by overallPlace. geom_point
+# draws in row order with opaque points, so without this the later group
+# visually buries the earlier one wherever points overlap -- sorting by
+# overallPlace interleaves them the same way 2026's data already is.
+allData <- allData[order(allData$overallPlace), ]
+
 elapsed_ticks <- seq(0, max(allData$elapsed), 900000)
 elapsed_plot <-
   ggplot(allData, aes(x = age, y = elapsed, color=sex)) +
